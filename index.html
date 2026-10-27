@@ -34,11 +34,33 @@
     font-size:12px; padding:6px 12px; white-space:nowrap; display:none; }
   #fonte { position:fixed; bottom:24px; right:26px; font-size:10px; color:#C9C2B3; text-align:right; }
   #carregando { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
-  @media (max-width:640px) {
-    #painel { width:auto; right:26px; padding:12px 14px; }
-    #painel h1 { font-size:18px; }
-    #ajuda, #fonte { display:none; }
-    #bussola { top:auto; bottom:70px; width:56px; height:56px; }
+  #b-info, #ajuda-toque { display:none; }
+  /* celular (retrato ou paisagem): cabecalho compacto em cima, controles embaixo */
+  @media (max-width:700px), (max-height:500px) {
+    #moldura { inset:4px; border-width:3px; }
+    #painel { top:12px; left:12px; right:12px; width:auto; max-width:none; padding:10px 12px;
+      max-height:calc(100vh - 150px); overflow-y:auto; }
+    #painel .tag { font-size:9px; padding-right:86px; }
+    #painel h1 { font-size:16px; margin:3px 0 1px; padding-right:86px; }
+    #painel .sub { font-size:11px; margin:0; }
+    #b-info { display:block; position:absolute; top:10px; right:12px; padding:6px 10px; font-size:11px; }
+    #detalhes, #legenda, #ajuda { display:none; }
+    #painel.aberto #detalhes, #painel.aberto #legenda, #painel.aberto #ajuda-toque { display:block; }
+    #ajuda-toque { margin-top:10px; font-size:11px; color:var(--cinza); line-height:1.4; }
+    .barra { margin:8px 0 8px; }
+    #controles { position:fixed; left:12px; right:12px; bottom:12px; background:rgba(247,244,236,.95);
+      padding:8px 12px 10px; box-shadow:0 4px 16px rgba(0,0,0,.35); }
+    #controles .ctl { margin-top:0; }
+    #controles .bts { margin-top:8px; }
+    #controles button { padding:10px 4px; }
+    #bussola { top:auto; bottom:124px; right:14px; width:52px; height:52px; }
+    #leitura { bottom:124px; font-size:11px; }
+    #fonte { display:none; }
+  }
+  /* celular deitado: paineis estreitos a esquerda para sobrar tela ao modelo */
+  @media (max-height:500px) and (min-width:501px) {
+    #painel, #controles { right:auto; width:300px; }
+    #painel { max-height:calc(100vh - 140px); }
   }
 </style>
 </head>
@@ -50,19 +72,24 @@
   <div class="tag">Atlas &middot; Prancha 5 &middot; Modelo 3D</div>
   <h1>Parque Nacional da Chapada dos Veadeiros</h1>
   <div class="sub">Relevo e drenagem &mdash; Goiás, Brasil</div>
-  <div class="barra"></div>
-  <div class="lin"><span>Altitude mínima</span><b id="s-min"></b></div>
-  <div class="lin"><span>Altitude máxima</span><b id="s-max"></b></div>
-  <div class="lin"><span>Altitude média</span><b id="s-med"></b></div>
-  <div class="lin"><span>Drenagem na UC</span><b id="s-dren"></b></div>
-  <div class="ctl">
-    <label><span>Exagero vertical</span><span id="v-ex"></span></label>
-    <input id="ex" type="range" min="1" max="10" step="0.5">
+  <button id="b-info">Detalhes ▾</button>
+  <div id="detalhes">
+    <div class="barra"></div>
+    <div class="lin"><span>Altitude mínima</span><b id="s-min"></b></div>
+    <div class="lin"><span>Altitude máxima</span><b id="s-max"></b></div>
+    <div class="lin"><span>Altitude média</span><b id="s-med"></b></div>
+    <div class="lin"><span>Drenagem na UC</span><b id="s-dren"></b></div>
   </div>
-  <div class="bts">
-    <button id="b-ini">Vista inicial</button>
-    <button id="b-topo">Topo</button>
-    <button id="b-gira">Girar</button>
+  <div id="controles">
+    <div class="ctl">
+      <label><span>Exagero vertical</span><span id="v-ex"></span></label>
+      <input id="ex" type="range" min="1" max="10" step="0.5">
+    </div>
+    <div class="bts">
+      <button id="b-ini">Vista inicial</button>
+      <button id="b-topo">Topo</button>
+      <button id="b-gira">Girar</button>
+    </div>
   </div>
   <div id="legenda">
     <div style="font-weight:bold;margin-bottom:4px">Altitude (m)</div>
@@ -70,6 +97,7 @@
     <div id="rotulos"></div>
   </div>
   <div id="ajuda">Arraste para girar &middot; botão direito para mover &middot; roda do mouse para aproximar. Passe o mouse sobre o terreno para ler a altitude.</div>
+  <div id="ajuda-toque">Um dedo gira &middot; dois dedos aproximam e movem &middot; toque no terreno para ler a altitude.</div>
 </div>
 <svg id="bussola" viewBox="-50 -50 100 100">
   <circle r="46" fill="rgba(247,244,236,.95)" stroke="#2E2A24" stroke-width="2"/>
@@ -1303,17 +1331,25 @@
     controls.update();
   }
   const raio = Math.hypot(larg, comp);
-  const ini = () => vista(raio * 1.0, 55, 0);
+  // celular em pe: o Parque e alongado leste-oeste, entao gira a vista 90 graus para ele
+  // ocupar a altura da tela (a bussola mostra o norte)
+  const empe = () => window.innerWidth / window.innerHeight < 0.8;
+  const ini = () => empe() ? vista(raio * 2.0, 40, 90) : vista(raio, 55, 0);
   ini();
   document.getElementById("b-ini").onclick = ini;
-  document.getElementById("b-topo").onclick = () => vista(raio * 1.1, 0.5, 0);
+  document.getElementById("b-topo").onclick = () => empe() ? vista(raio * 2.6, 0.5, 90) : vista(raio * 1.1, 0.5, 0);
+  const painel = document.getElementById("painel"), bi = document.getElementById("b-info");
+  bi.onclick = () => {
+    painel.classList.toggle("aberto");
+    bi.textContent = painel.classList.contains("aberto") ? "Fechar ▴" : "Detalhes ▾";
+  };
   const bg = document.getElementById("b-gira");
   bg.onclick = () => { controls.autoRotate = !controls.autoRotate; bg.classList.toggle("on", controls.autoRotate); };
   controls.autoRotateSpeed = 0.8;
 
   // leitura de altitude e coordenadas sob o mouse
   const ray = new THREE.Raycaster(), m = new THREE.Vector2(), leitura = document.getElementById("leitura");
-  renderer.domElement.addEventListener("pointermove", ev => {
+  function ler(ev) {
     m.set(ev.clientX / window.innerWidth * 2 - 1, -ev.clientY / window.innerHeight * 2 + 1);
     ray.setFromCamera(m, camera);
     const hit = ray.intersectObject(terreno)[0];
@@ -1324,8 +1360,12 @@
     const E = D.x0 + c * dx * 1000, N = D.y1 - r * dz * 1000;
     leitura.innerHTML = "<b>" + fmt(alt[i] / 10) + " m</b> &nbsp;·&nbsp; E " + fmt(E) + " &nbsp; N " + fmt(N);
     leitura.style.display = "block";
+  }
+  renderer.domElement.addEventListener("pointermove", ev => { if (ev.pointerType === "mouse") ler(ev); });
+  renderer.domElement.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse") ler(ev); });
+  renderer.domElement.addEventListener("pointerleave", ev => {
+    if (ev.pointerType === "mouse") leitura.style.display = "none";
   });
-  renderer.domElement.addEventListener("pointerleave", () => leitura.style.display = "none");
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
